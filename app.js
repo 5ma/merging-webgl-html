@@ -47,6 +47,18 @@ export default class Sketch {
   addObjects() {
     this.geometry = new THREE.BoxGeometry( 0.2, 0.2, 0.2 )
     this.material = new THREE.MeshNormalMaterial()
+    this.material = new THREE.ShaderMaterial({
+      fragmentShader: `
+        void main() {
+          gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        }
+      `,
+      vertexShader: `
+        void main() {
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `
+    })
 
     this.mesh = new THREE.Mesh( this.geometry, this.material )
     this.scene.add(this.mesh)
