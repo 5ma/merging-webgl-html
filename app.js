@@ -24,8 +24,13 @@ export default class Sketch {
     this.controls.enableDamping = true
 
     this.resize()
+    this.setupResize()
     this.addObjects()
     this.render()
+  }
+  
+  setupResize() {
+    window.addEventListener('resize', this.resize.bind(this))
   }
   
   resize() {
@@ -36,6 +41,7 @@ export default class Sketch {
     this.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio))
     
     this.camera.aspect = this.width / this.height
+    this.camera.updateProjectionMatrix()
   }
   
   addObjects() {
