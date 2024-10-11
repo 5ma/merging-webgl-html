@@ -15,7 +15,7 @@ export default class Sketch {
     
     this.scene = new THREE.Scene()
     this.camera = new THREE.PerspectiveCamera( 70, this.width / this.height, 0.01, 10 )
-    this.camera.position.z = 1
+    this.camera.position.z = 3
     
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -47,11 +47,13 @@ export default class Sketch {
   }
   
   addObjects() {
-    this.geometry = new THREE.BoxGeometry( 0.2, 0.2, 0.2 )
+    this.geometry = new THREE.PlaneGeometry(0.5, 0.5, 15, 15)
     this.material = new THREE.MeshNormalMaterial()
     this.material = new THREE.ShaderMaterial({
+      side: THREE.DoubleSide,
       fragmentShader: fragment,
-      vertexShader: vertex
+      vertexShader: vertex,
+      wireframe: true
     })
 
     this.mesh = new THREE.Mesh( this.geometry, this.material )
