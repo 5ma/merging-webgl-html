@@ -15,7 +15,7 @@ export default class Sketch {
     
     this.scene = new THREE.Scene()
     this.camera = new THREE.PerspectiveCamera( 70, this.width / this.height, 0.01, 10 )
-    this.camera.position.z = 3
+    this.camera.position.z = 2
     
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -53,7 +53,10 @@ export default class Sketch {
       side: THREE.DoubleSide,
       fragmentShader: fragment,
       vertexShader: vertex,
-      wireframe: true
+      uniforms: {
+        uTime: new THREE.Uniform(this.elapsedTime)
+      },
+      // wireframe: true
     })
 
     this.mesh = new THREE.Mesh( this.geometry, this.material )
@@ -65,6 +68,9 @@ export default class Sketch {
     
     this.mesh.rotation.x = this.elapsedTime / 2000
     this.mesh.rotation.y = this.elapsedTime / 1000
+    
+    // update uniforms
+    this.material.uniforms.uTime.value = this.elapsedTime
     
     this.controls.update()
 

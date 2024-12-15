@@ -1,3 +1,7 @@
+uniform float uTime;
+
+varying float vNoise;
+
 //	Classic Perlin 3D Noise 
 //	by Stefan Gustavson (https://github.com/stegu/webgl-noise)
 //
@@ -77,6 +81,11 @@ void main() {
   #define PI 3.14159265358979323846
   
   vec3 newPosition = position;
-  newPosition.z += sin((newPosition.x + 0.25) * 2.0 * PI) * 0.1;
+  // newPosition.z += sin((newPosition.x + 0.25 + uTime) * 2.0 * PI) * 0.1;
+  float noise = cnoise(vec3(position.x * 4.0, position.y * 4.0 + uTime * 0.8, 0.0));
+  newPosition.z += noise * 0.1;
+  
+  vNoise = noise;
+  
   gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
 }
