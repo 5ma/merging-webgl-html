@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import fragment from './shaders/fragment.glsl'
 import vertex from './shaders/vertex.glsl'
+import ocean from '../images/sea.jpg'
 
 export default class Sketch {
   constructor(options) {
@@ -15,7 +16,7 @@ export default class Sketch {
     
     this.scene = new THREE.Scene()
     this.camera = new THREE.PerspectiveCamera( 70, this.width / this.height, 0.01, 10 )
-    this.camera.position.z = 2
+    this.camera.position.z = 1
     
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -47,16 +48,19 @@ export default class Sketch {
   }
   
   addObjects() {
-    this.geometry = new THREE.PlaneGeometry(0.5, 0.5, 15, 15)
+    this.geometry = new THREE.PlaneGeometry(1, 1, 40, 40)
+    this.geometry = new THREE.SphereGeometry(0.4, 40, 40)
     this.material = new THREE.MeshNormalMaterial()
     this.material = new THREE.ShaderMaterial({
       side: THREE.DoubleSide,
       fragmentShader: fragment,
       vertexShader: vertex,
       uniforms: {
-        uTime: new THREE.Uniform(this.elapsedTime)
+        uTime: new THREE.Uniform(this.elapsedTime),
+        uOceanTexture: new THREE.Uniform(new THREE.TextureLoader().load(ocean)),
       },
-      // wireframe: true
+      wireframe: true,
+      transparent: true,
     })
 
     this.mesh = new THREE.Mesh( this.geometry, this.material )
