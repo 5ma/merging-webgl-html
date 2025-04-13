@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import fragment from './shaders/fragment.glsl'
 import vertex from './shaders/vertex.glsl'
-import ocean from '../images/sea.jpg'
+import ocean from '../img/sea.jpg'
 
 export default class Sketch {
   constructor(options) {
@@ -15,11 +15,17 @@ export default class Sketch {
     this.elapsedTime = 0
     
     this.scene = new THREE.Scene()
-    this.camera = new THREE.PerspectiveCamera( 70, this.width / this.height, 0.01, 10 )
-    this.camera.position.z = 1
+    this.camera = new THREE.PerspectiveCamera( 70, this.width / this.height, 100, 2000 )
+    this.camera.position.z = 600
+
+    const halfTheta = Math.atan((this.height/2)/this.camera.position.z)
+    // atanの返り値はラジアンだが、three.js のカメラ設定では視野角（FOV）が degreeである必要があるため、degreeに変換する
+    const halfThetaDegree = halfTheta * (180 / Math.PI)
+    this.camera.fov = 2 * halfThetaDegree
     
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
+      alpha: true
     })
     this.container.appendChild( this.renderer.domElement );
     
@@ -48,8 +54,8 @@ export default class Sketch {
   }
   
   addObjects() {
-    this.geometry = new THREE.PlaneGeometry(1, 1, 40, 40)
-    this.geometry = new THREE.SphereGeometry(0.4, 40, 40)
+    this.geometry = new THREE.PlaneGeometry(100, 100, 10, 10)
+    // this.geometry = new THREE.SphereGeometry(0.4, 40, 40)
     this.material = new THREE.MeshNormalMaterial()
     this.material = new THREE.ShaderMaterial({
       side: THREE.DoubleSide,
@@ -84,5 +90,5 @@ export default class Sketch {
 }
 
 new Sketch({
-  dom: document.querySelector('#webgl')
+  dom: document.querySelector('#container')
 })

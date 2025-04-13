@@ -88,7 +88,7 @@ void main() {
 
   // float distanceToCenter = distance(uv, vec2(0.5));
   // newPosition.z += 0.1 * sin(distanceToCenter * 10.0 + uTime);
-  newPosition += 0.05 * normal * noise;
+  // newPosition += 0.05 * normal * noise;
   
   vNoise = noise;
   vUv = uv;
