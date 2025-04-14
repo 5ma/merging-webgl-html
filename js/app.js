@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import imagesLoaded from 'imagesloaded';
+import FontFaceObserver from 'fontfaceobserver';
 import fragment from './shaders/fragment.glsl'
 import vertex from './shaders/vertex.glsl'
 import ocean from '../img/sea.jpg'
@@ -34,11 +36,29 @@ export default class Sketch {
 
     this.images = [...document.querySelectorAll('img')]
 
-    this.addImages()
-    this.resize()
-    this.setupResize()
-    this.addObjects()
-    this.render()
+    const fontOpen = new Promise (resolve => {
+      new FontFaceObserver("Open Sans").load().then(() => {
+        resolve() ;
+      })
+    })
+    const fontPlayfair = new Promise (resolve => {
+      new FontFaceObserver("Playfair Display").load().then(() => { resolve() })
+    })
+    // Preload images
+    const preloadImages = new Promise((resolve, reject) => {
+      imagesLoaded(document.querySelectorAll("img"), { background: true }, resolve);
+    })
+
+    // フォントの読み込みや画像の読み込みが全て完了した後に実行
+    const allDone = [fontOpen, fontPlayfair, preloadImages]
+    Promise.all(allDone).then(() => {
+      this.addImages()
+      this.setPosition()
+      this.resize()
+      this.setupResize()
+      this.addObjects()
+      this.render()
+    })
   }
   
   setupResize() {
@@ -59,9 +79,15 @@ export default class Sketch {
   addImages() {
     this.imageStore = this.images.map((img) => {
       const bounds = img.getBoundingClientRect()
+      const texture = new THREE.Texture(img)
+      texture.colorSpace = THREE.SRGBColorSpace
+      texture.needsUpdate = true
+
       const mesh = new THREE.Mesh(
         new THREE.PlaneGeometry(bounds.width, bounds.height, 1, 1),
-        new THREE.MeshBasicMaterial({ color: 'red' })
+        new THREE.MeshBasicMaterial({
+          map: texture
+        })
       )
       this.scene.add(mesh)
 
@@ -76,6 +102,15 @@ export default class Sketch {
     })
 
     console.log(this.imageStore)
+  }
+
+  setPosition() {
+    // three.js内のmeshのpositionを実際のhtml上の画像の位置に合わせる
+    // three.jsは画面の中心が(0,0)かつmeshの中心がpositionとなっているが、htmlでは画面の左上が(0,0)になり、要素の左上の基準位置とするためそれらを調整
+    this.imageStore.forEach((item) => {
+      item.mesh.position.y = -item.top + (this.height * 0.5) - item.height * 0.5;
+      item.mesh.position.x = item.left - (this.width * 0.5) + item.width * 0.5;
+    })
   }
   
   addObjects() {
