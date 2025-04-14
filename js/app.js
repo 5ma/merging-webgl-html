@@ -5,6 +5,7 @@ import FontFaceObserver from 'fontfaceobserver';
 import fragment from './shaders/fragment.glsl'
 import vertex from './shaders/vertex.glsl'
 import ocean from '../img/sea.jpg'
+import Scroll from './scroll'
 
 export default class Sketch {
   constructor(options) {
@@ -51,12 +52,15 @@ export default class Sketch {
 
     // フォントの読み込みや画像の読み込みが全て完了した後に実行
     const allDone = [fontOpen, fontPlayfair, preloadImages]
+    this.currentScroll = 0
+
     Promise.all(allDone).then(() => {
+      this.scroll = new Scroll()
       this.addImages()
       this.setPosition()
       this.resize()
       this.setupResize()
-      this.addObjects()
+      // this.addObjects()
       this.render()
     })
   }
@@ -108,7 +112,7 @@ export default class Sketch {
     // three.js内のmeshのpositionを実際のhtml上の画像の位置に合わせる
     // three.jsは画面の中心が(0,0)かつmeshの中心がpositionとなっているが、htmlでは画面の左上が(0,0)になり、要素の左上の基準位置とするためそれらを調整
     this.imageStore.forEach((item) => {
-      item.mesh.position.y = -item.top + (this.height * 0.5) - item.height * 0.5;
+      item.mesh.position.y = this.currentScroll - item.top + (this.height * 0.5) - item.height * 0.5;
       item.mesh.position.x = item.left - (this.width * 0.5) + item.width * 0.5;
     })
   }
@@ -135,12 +139,16 @@ export default class Sketch {
   
   render() {
     this.elapsedTime = this.clock.getElapsedTime()
+
+    this.scroll.render()
+    this.currentScroll = this.scroll.scrollToRender
+    this.setPosition()
     
-    this.mesh.rotation.x = this.elapsedTime / 2000
-    this.mesh.rotation.y = this.elapsedTime / 1000
+    // this.mesh.rotation.x = this.elapsedTime / 2000
+    // this.mesh.rotation.y = this.elapsedTime / 1000
     
     // update uniforms
-    this.material.uniforms.uTime.value = this.elapsedTime
+    // this.material.uniforms.uTime.value = this.elapsedTime
     
     this.controls.update()
 
