@@ -6,6 +6,7 @@ import fragment from './shaders/fragment.glsl'
 import vertex from './shaders/vertex.glsl'
 import ocean from '../img/sea.jpg'
 import Scroll from './scroll'
+import gsap from "gsap";
 
 export default class Sketch {
   constructor(options) {
@@ -54,8 +55,13 @@ export default class Sketch {
     const allDone = [fontOpen, fontPlayfair, preloadImages]
     this.currentScroll = 0
 
+    this.raycaster = new THREE.Raycaster();
+    this.pointer = new THREE.Vector2();
+
     Promise.all(allDone).then(() => {
       this.scroll = new Scroll()
+
+      this.mouseMovement()
       this.addImages()
       this.setPosition()
       this.resize()
@@ -63,6 +69,23 @@ export default class Sketch {
       // this.addObjects()
       this.render()
     })
+  }
+
+  mouseMovement() {
+    window.addEventListener('mousemove', (event) => {
+      this.pointer.x = ( event.clientX / this.width ) * 2 - 1;
+      this.pointer.y = - ( event.clientY / this.height ) * 2 + 1;
+
+      this.raycaster.setFromCamera( this.pointer, this.camera );
+
+      // calculate objects intersecting the picking ray
+      const intersects = this.raycaster.intersectObjects( this.scene.children );
+
+      if (intersects.length) {
+        const targetObj = intersects[0].object;
+        targetObj.material.uniforms.uHover.value = intersects[0].uv
+      }
+    }, false)
   }
   
   setupResize() {
@@ -81,17 +104,49 @@ export default class Sketch {
   }
 
   addImages() {
+    this.material = new THREE.ShaderMaterial({
+      // side: THREE.DoubleSide,
+      fragmentShader: fragment,
+      vertexShader: vertex,
+      uniforms: {
+        uTime: new THREE.Uniform(this.elapsedTime),
+        uImage: new THREE.Uniform(0),
+        uHover: new THREE.Uniform(new THREE.Vector2(0.5, 0.5)),
+        uHoverState: new THREE.Uniform(0)
+      },
+      // wireframe: true,
+      transparent: true,
+    })
+
+    this.materials = []
     this.imageStore = this.images.map((img) => {
       const bounds = img.getBoundingClientRect()
       const texture = new THREE.Texture(img)
-      texture.colorSpace = THREE.SRGBColorSpace
+      // texture.colorSpace = THREE.SRGBColorSpace
       texture.needsUpdate = true
 
-      const mesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(bounds.width, bounds.height, 1, 1),
-        new THREE.MeshBasicMaterial({
-          map: texture
+      const material = this.material.clone()
+      material.uniforms.uImage.value = texture
+      this.materials.push(material)
+
+      img.addEventListener('mouseenter', () => {
+        gsap.to(material.uniforms.uHoverState, {
+          value: 1,
+          duration: 1,
+          overwrite: true
         })
+      })
+      img.addEventListener('mouseleave', () => {
+        gsap.to(material.uniforms.uHoverState, {
+          value: 0,
+          duration: 1,
+          overwrite: true
+        })
+      })
+
+      const mesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(bounds.width, bounds.height, 10, 10),
+        material
       )
       this.scene.add(mesh)
 
@@ -143,13 +198,16 @@ export default class Sketch {
     this.scroll.render()
     this.currentScroll = this.scroll.scrollToRender
     this.setPosition()
-    
+
+    for (let i = 0; i < this.materials.length; i++) {
+      this.materials[i].uniforms.uTime.value = this.elapsedTime;
+    }
+
     // this.mesh.rotation.x = this.elapsedTime / 2000
     // this.mesh.rotation.y = this.elapsedTime / 1000
     
     // update uniforms
     // this.material.uniforms.uTime.value = this.elapsedTime
-    
     this.controls.update()
 
     this.renderer.render(this.scene, this.camera)
