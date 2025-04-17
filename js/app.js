@@ -7,6 +7,12 @@ import vertex from './shaders/vertex.glsl'
 import ocean from '../img/sea.jpg'
 import Scroll from './scroll'
 import gsap from "gsap";
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { RGBShiftShader } from 'three/examples/jsm/shaders/RGBShiftShader.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { GlitchPass } from 'three/examples/jsm/postprocessing/GlitchPass.js';
 
 export default class Sketch {
   constructor(options) {
@@ -67,6 +73,7 @@ export default class Sketch {
       this.resize()
       this.setupResize()
       // this.addObjects()
+      this.composerPass()
       this.render()
     })
   }
@@ -163,6 +170,78 @@ export default class Sketch {
     console.log(this.imageStore)
   }
 
+  composerPass(){
+    this.composer = new EffectComposer(this.renderer);
+    this.renderPass = new RenderPass(this.scene, this.camera);
+    this.composer.addPass(this.renderPass);
+
+    //custom shader pass
+    var counter = 0.0;
+    this.myEffect = {
+      uniforms: {
+        "tDiffuse": { value: null },
+        "scrollSpeed": { value: null },
+        "uAmount": { value: 0.5 },
+        "uAngle": { value: 15 },
+      },
+      vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        vec3 newPosition = position;
+        gl_Position = projectionMatrix 
+          * modelViewMatrix 
+          * vec4( newPosition, 1.0 );
+      }
+      `,
+      fragmentShader: `
+      uniform sampler2D tDiffuse;
+      uniform float scrollSpeed;
+      uniform float uAmount;
+      uniform float uAngle;
+      varying vec2 vUv;
+      void main(){
+        vec2 offset = uAmount * vec2(cos(uAngle), sin(uAngle));
+
+        vec4 cr = texture2D(tDiffuse, vUv + offset);
+        vec4 cga = texture2D(tDiffuse, vUv);
+        vec4 cb = texture2D(tDiffuse, vUv - offset);
+
+        vec4 finalColor = vec4(cr.r, cga.g, cb.b, cga.a);
+
+        // 下部（vUv.y > 0.6）のみ適用、それ以外は元の色を使う
+        float edge = smoothstep(0.6, 0.65, vUv.y); // ふわっと適用
+        gl_FragColor = mix(cga, finalColor, edge);
+
+        // distortion
+        vec2 newUV = vUv;
+        float area = smoothstep(0.5, 0.0, vUv.y);
+        area = pow(area, 4.0);
+        newUV.x += (0.5 - vUv.x) * 0.15 * area * scrollSpeed;
+        finalColor = mix(cga, finalColor, area);
+        
+        gl_FragColor = finalColor;
+        // gl_FragColor = vec4(area, 0.0, 0.0, 1.0);
+      }
+      `
+    }
+
+    this.customPass = new ShaderPass(this.myEffect);
+    this.customPass.renderToScreen = false;
+    this.composer.addPass(this.customPass);
+
+    // add glitch effect pass
+    // this.glitchPass = new GlitchPass();
+    // this.glitchPass.goWild = false; // You can toggle this dynamically
+    // this.customPass.renderToScreen = true;
+    // this.composer.addPass(this.glitchPass);
+
+    // this.rgbShiftPass = new ShaderPass(RGBShiftShader);
+    // this.rgbShiftPass.uniforms['amount'].value = 0.8; // 色ズレの強さ
+    // this.customPass.renderToScreen = true;
+    // this.composer.addPass(this.rgbShiftPass);
+  }
+
   setPosition() {
     // three.js内のmeshのpositionを実際のhtml上の画像の位置に合わせる
     // three.jsは画面の中心が(0,0)かつmeshの中心がpositionとなっているが、htmlでは画面の左上が(0,0)になり、要素の左上の基準位置とするためそれらを調整
@@ -199,6 +278,10 @@ export default class Sketch {
     this.currentScroll = this.scroll.scrollToRender
     this.setPosition()
 
+    // this.customPass.uniforms.scrollSpeed.value = this.scroll.speedTarget
+    // this.glitchPass.goWild = this.scroll.speedTarget > 0.05;
+    // this.rgbShiftPass.uniforms['amount'].value = 0.8 * this.scroll.speedTarget; // 色ズレの強さ
+
     for (let i = 0; i < this.materials.length; i++) {
       this.materials[i].uniforms.uTime.value = this.elapsedTime;
     }
@@ -210,7 +293,8 @@ export default class Sketch {
     // this.material.uniforms.uTime.value = this.elapsedTime
     this.controls.update()
 
-    this.renderer.render(this.scene, this.camera)
+    // this.renderer.render(this.scene, this.camera)
+    this.composer.render()
     window.requestAnimationFrame(this.render.bind(this))
   }
 }

@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "fontfaceobserver": "^2.3.0",
+    "gsap": "^3.12.7",
     "imagesloaded": "^5.0.0",
     "parcel-bundler": "^1.12.5",
     "three": "^0.169.0"
